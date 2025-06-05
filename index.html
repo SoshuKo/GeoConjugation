@@ -379,6 +379,14 @@ function conjugateFutureSubjunctiveIII(c) {
   return conjugateFutureSubjunctive(c);
 }
 
+function conjugateAoristIII(c) {
+  return conjugateAorist(c);
+}
+
+function conjugateOptativeIII(c) {
+  return conjugateOptative(c);
+}
+
 function conjugateAorist(c) {
   if (!c.preverb) return null;
   const pv = c.preVowel, s = c.stem, pre = c.preverb;
@@ -583,8 +591,17 @@ function generate() {
   }
 
   if (comp.preverb) {
-    const aor = type === 'II' ? conjugateAoristII(comp) : conjugateAorist(comp);
-    const opt = type === 'II' ? conjugateOptativeII(comp) : conjugateOptative(comp);
+    let aor, opt;
+    if (type === 'II') {
+      aor = conjugateAoristII(comp);
+      opt = conjugateOptativeII(comp);
+    } else if (type === 'III') {
+      aor = conjugateAoristIII(comp);
+      opt = conjugateOptativeIII(comp);
+    } else {
+      aor = conjugateAorist(comp);
+      opt = conjugateOptative(comp);
+    }
     html += renderTable('アオリスト', aor, 'aorist');
     html += renderTable('希求法', opt, 'optative');
   } else {
