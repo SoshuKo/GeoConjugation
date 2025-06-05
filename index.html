@@ -511,6 +511,42 @@ function conjugatePerfectSubjunctiveII(c) {
   };
 }
 
+function conjugatePresentPerfectIII(c) {
+  const s = c.stem;
+  return {
+    '1sg': buildForm('ი', s, '', 'ია', 'მ', ''),
+    '2sg': buildForm('ი', s, '', 'ია', 'გ', ''),
+    '3sg': buildForm('უ', s, '', 'ია', '', ''),
+    '1pl': buildForm('ი', s, '', 'ია', 'გვ', ''),
+    '2pl': buildForm('ი', s, '', 'იათ', 'გ', ''),
+    '3pl': buildForm('უ', s, '', 'იათ', '', '')
+  };
+}
+
+function conjugatePastPerfectIII(c) {
+  const pre = c.preverb, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildFormFuture(pre, 'ე', s, m, 'ა', 'მ', ''),
+    '2sg': buildFormFuture(pre, 'ე', s, m, 'ა', 'გ', ''),
+    '3sg': buildFormFuture(pre, 'ე', s, m, 'ა', '', ''),
+    '1pl': buildFormFuture(pre, 'ე', s, m, 'ა', 'გვ', ''),
+    '2pl': buildFormFuture(pre, 'ე', s, m, 'ათ', 'გ', ''),
+    '3pl': buildFormFuture(pre, 'ე', s, m, 'ათ', '', '')
+  };
+}
+
+function conjugatePerfectSubjunctiveIII(c) {
+  const pre = c.preverb, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildFormFuture(pre, 'ე', s, m, 'ოს', 'მ', ''),
+    '2sg': buildFormFuture(pre, 'ე', s, m, 'ოს', 'გ', ''),
+    '3sg': buildFormFuture(pre, 'ე', s, m, 'ოს', '', ''),
+    '1pl': buildFormFuture(pre, 'ე', s, m, 'ოს', 'გვ', ''),
+    '2pl': buildFormFuture(pre, 'ე', s, m, 'ოთ', 'გ', ''),
+    '3pl': buildFormFuture(pre, 'ე', s, m, 'ოთ', '', '')
+  };
+}
+
 function formatForm(str) {
   if (document.getElementById('noHyphen').checked) {
     return str.replace(/-/g, '');
@@ -560,9 +596,20 @@ function generate() {
     impf = conjugateImperfect(comp);
     subj = conjugateSubjunctive(comp);
   }
-  const pperf = type === 'II' ? conjugatePresentPerfectII(comp) : conjugatePresentPerfect(comp);
-  const iperf = type === 'II' ? conjugatePastPerfectII(comp) : conjugatePastPerfect(comp);
-  const sperf = type === 'II' ? conjugatePerfectSubjunctiveII(comp) : conjugatePerfectSubjunctive(comp);
+  let pperf, iperf, sperf;
+  if (type === 'II') {
+    pperf = conjugatePresentPerfectII(comp);
+    iperf = conjugatePastPerfectII(comp);
+    sperf = conjugatePerfectSubjunctiveII(comp);
+  } else if (type === 'III') {
+    pperf = conjugatePresentPerfectIII(comp);
+    iperf = conjugatePastPerfectIII(comp);
+    sperf = conjugatePerfectSubjunctiveIII(comp);
+  } else {
+    pperf = conjugatePresentPerfect(comp);
+    iperf = conjugatePastPerfect(comp);
+    sperf = conjugatePerfectSubjunctive(comp);
+  }
   let html = '';
   html += renderTable('現在', pres, 'present');
   html += renderTable('未完了過去', impf, 'imperfect');
