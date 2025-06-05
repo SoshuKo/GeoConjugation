@@ -4,9 +4,57 @@
 <meta charset="UTF-8">
 <title>ジョージア語動詞活用ジェネレーター</title>
 <style>
- body { font-family: sans-serif; }
- table { border-collapse: collapse; margin-bottom: 1em; }
- th, td { border: 1px solid #000; padding: 4px 8px; }
+ body {
+   font-family: "Segoe UI", "Hiragino Kaku Gothic Pro", sans-serif;
+   background: #f5f5f5;
+   padding: 1em;
+ }
+ table {
+   border-collapse: collapse;
+   margin-bottom: 1em;
+   width: 100%;
+ }
+ th, td {
+   border: 1px solid #444;
+   padding: 6px 8px;
+ }
+ th {
+   background: #ddd;
+ }
+ tr:hover td {
+   background: #ffffcc;
+   cursor: pointer;
+ }
+ td.copied {
+   animation: flash 0.6s;
+ }
+@keyframes flash {
+  from { background: #ffffcc; }
+  to { background: #fff; }
+}
+option.highlight { background: #ff0; }
+.hidden { display: none; }
+details {
+  margin-bottom: 0.5em;
+}
+summary {
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px;
+  background: #ccc;
+  border: 1px solid #444;
+}
+table[data-tam="present"] { background:#eef; }
+table[data-tam="imperfect"] { background:#efe; }
+table[data-tam="subj"] { background:#ffe; }
+table[data-tam="future"] { background:#eef5ff; }
+table[data-tam="conditional"] { background:#f5fff0; }
+table[data-tam="fsub"] { background:#fff5f0; }
+table[data-tam="aorist"] { background:#f0f5ff; }
+table[data-tam="optative"] { background:#f0fff5; }
+table[data-tam="presperf"] { background:#fff0f5; }
+table[data-tam="pastperf"] { background:#f5f0ff; }
+table[data-tam="perfsub"] { background:#f5f5e0; }
 </style>
 </head>
 <body>
@@ -14,12 +62,75 @@
 <label for="dictForm">辞書形: </label>
 <input id="dictForm" type="text">
 <button id="convButton">活用する</button>
+<label for="verbType">型:</label>
+<select id="verbType">
+  <option value="I">Ⅰ型</option>
+  <option value="II">Ⅱ型</option>
+  <option value="III">Ⅲ型</option>
+  <option value="IV">Ⅳ型</option>
+</select>
+<label><input type="checkbox" id="noHyphen">ハイフンを表示しない</label>
+<div style="margin-top:0.5em">
+  <label for="tamFilter">TAM:</label>
+  <select id="tamFilter">
+    <option value="">すべて</option>
+    <option value="present">現在</option>
+    <option value="imperfect">未完了過去</option>
+    <option value="subj">接続法現在</option>
+    <option value="future">未来</option>
+    <option value="conditional">条件法</option>
+    <option value="fsub">接続法未来</option>
+    <option value="aorist">アオリスト</option>
+    <option value="optative">希求法</option>
+    <option value="presperf">現在完了</option>
+    <option value="pastperf">過去完了</option>
+    <option value="perfsub">接続法完了</option>
+  </select>
+  <label for="personFilter">人称:</label>
+  <select id="personFilter">
+    <option value="">--</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+  </select>
+  <label for="numberFilter">数:</label>
+  <select id="numberFilter">
+    <option value="">--</option>
+    <option value="sg">単</option>
+    <option value="pl">複</option>
+  </select>
+</div>
 <div id="output"></div>
 <script>
 // 定義: 前母音・現在/未来マーカー・人称接尾辞
 const PRE_VOWELS = ['ა', 'ე', 'ი', 'უ'];
 const FUTURE_MARKERS = ['ამ', 'ავ', 'ებ', 'ობ', 'ოპ', 'ი', 'მ', 'ვ'];
 const PERSON_SUFFIXES = ['ს', 'ა'];
+
+function highlightType(suffix) {
+  document.querySelectorAll('#verbType option').forEach(o => o.classList.remove('highlight'));
+  if (suffix === 'ს') {
+    document.querySelector('#verbType option[value="I"]').classList.add('highlight');
+    document.querySelector('#verbType option[value="III"]').classList.add('highlight');
+  } else if (suffix === 'ა') {
+    document.querySelector('#verbType option[value="II"]').classList.add('highlight');
+    document.querySelector('#verbType option[value="IV"]').classList.add('highlight');
+  }
+}
+
+function applyFilter() {
+  const t = document.getElementById('tamFilter').value;
+  const p = document.getElementById('personFilter').value;
+  const n = document.getElementById('numberFilter').value;
+  document.querySelectorAll('#output table.tam').forEach(tab => {
+    tab.style.display = !t || tab.dataset.tam === t ? '' : 'none';
+  });
+  document.querySelectorAll('#output tr.person-row').forEach(row => {
+    const okP = !p || row.dataset.person === p;
+    const okN = !n || row.dataset.number === n;
+    row.style.display = okP && okN ? '' : 'none';
+  });
+}
 
 function parseDictionaryForm(str) {
   const trimmed = str.trim();
@@ -219,17 +330,30 @@ function conjugatePerfectSubjunctive(c) {
   };
 }
 
-function renderTable(title, forms) {
-  return '<h3>' + title + '</h3>' +
-    '<table>' +
-    '<tr><th>人称</th><th>活用形</th></tr>' +
-    '<tr><th>1単</th><td>' + forms['1sg'] + '</td></tr>' +
-    '<tr><th>2単</th><td>' + forms['2sg'] + '</td></tr>' +
-    '<tr><th>3単</th><td>' + forms['3sg'] + '</td></tr>' +
-    '<tr><th>1複</th><td>' + forms['1pl'] + '</td></tr>' +
-    '<tr><th>2複</th><td>' + forms['2pl'] + '</td></tr>' +
-    '<tr><th>3複</th><td>' + forms['3pl'] + '</td></tr>' +
-    '</table>';
+function formatForm(str) {
+  if (document.getElementById('noHyphen').checked) {
+    return str.replace(/-/g, '');
+  }
+  return str;
+}
+
+function renderTable(title, forms, key) {
+  const rows = [
+    ['1sg', '1単', 'sg', '1'],
+    ['2sg', '2単', 'sg', '2'],
+    ['3sg', '3単', 'sg', '3'],
+    ['1pl', '1複', 'pl', '1'],
+    ['2pl', '2複', 'pl', '2'],
+    ['3pl', '3複', 'pl', '3']
+  ];
+  let html = '<details open><summary>' + title + '</summary>' +
+    '<table class="tam" data-tam="' + key + '">' +
+    '<tr class="header"><th>人称</th><th>活用形</th></tr>';
+  rows.forEach(r => {
+    html += '<tr class="person-row" data-number="' + r[2] + '" data-person="' + r[3] + '"><th>' + r[1] + '</th><td>' + formatForm(forms[r[0]]) + '</td></tr>';
+  });
+  html += '</table></details>';
+  return html;
 }
 
 function generate() {
@@ -239,38 +363,58 @@ function generate() {
     document.getElementById('output').textContent = '解析できませんでした。';
     return;
   }
+  highlightType(comp.suffix);
   const pres = conjugatePresent(comp);
   const impf = conjugateImperfect(comp);
   const subj = conjugateSubjunctive(comp);
   const pperf = conjugatePresentPerfect(comp);
   const iperf = conjugatePastPerfect(comp);
   const sperf = conjugatePerfectSubjunctive(comp);
-  let html = renderTable('現在', pres) +
-    renderTable('未完了過去', impf) +
-    renderTable('接続法現在', subj) +
-    renderTable('現在完了', pperf) +
-    renderTable('過去完了', iperf) +
-    renderTable('接続法完了', sperf);
+  let html = '';
+  html += renderTable('現在', pres, 'present');
+  html += renderTable('未完了過去', impf, 'imperfect');
+  html += renderTable('接続法現在', subj, 'subj');
 
   if (comp.preverb) {
     const fut = conjugateFuture(comp);
     const cond = conjugateConditional(comp);
     const fsub = conjugateFutureSubjunctive(comp);
-    const aor = conjugateAorist(comp);
-    const opt = conjugateOptative(comp);
-    html += renderTable('未来', fut) +
-      renderTable('条件法', cond) +
-      renderTable('接続法未来', fsub) +
-      renderTable('アオリスト', aor) +
-      renderTable('希求法', opt);
+    html += renderTable('未来', fut, 'future');
+    html += renderTable('条件法', cond, 'conditional');
+    html += renderTable('接続法未来', fsub, 'fsub');
   } else {
     html += '<p>この動詞は未来亜系統には活用できません</p>';
+  }
+
+  if (comp.preverb) {
+    const aor = conjugateAorist(comp);
+    const opt = conjugateOptative(comp);
+    html += renderTable('アオリスト', aor, 'aorist');
+    html += renderTable('希求法', opt, 'optative');
+  } else {
     html += '<p>この動詞はアオリスト亜系統には活用できません</p>';
   }
+
+  html += renderTable('現在完了', pperf, 'presperf');
+  html += renderTable('過去完了', iperf, 'pastperf');
+  html += renderTable('接続法完了', sperf, 'perfsub');
   document.getElementById('output').innerHTML = html;
+  applyFilter();
+  document.querySelectorAll('#output td').forEach(td => {
+    td.addEventListener('click', () => {
+      navigator.clipboard.writeText(td.textContent).then(() => {
+        td.classList.add('copied');
+        setTimeout(() => td.classList.remove('copied'), 600);
+      });
+    });
+  });
 }
 
 document.getElementById('convButton').addEventListener('click', generate);
+document.getElementById('tamFilter').addEventListener('change', applyFilter);
+document.getElementById('personFilter').addEventListener('change', applyFilter);
+document.getElementById('numberFilter').addEventListener('change', applyFilter);
+document.getElementById('noHyphen').addEventListener('change', generate);
 </script>
 </body>
 </html>
