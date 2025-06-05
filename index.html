@@ -227,6 +227,85 @@ function conjugateSubjunctive(c) {
   };
 }
 
+function conjugatePresentII(c) {
+  const p = c.preVowel, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildForm(p, s, m, 'ი', 'ვ', ''),
+    '2sg': buildForm(p, s, m, 'ი', '', ''),
+    '3sg': buildForm(p, s, m, 'ა', '', ''),
+    '1pl': buildForm(p, s, m, 'ით', 'ვ', ''),
+    '2pl': buildForm(p, s, m, 'ით', '', ''),
+    '3pl': buildForm(p, s, m, 'იან', '', '')
+  };
+}
+
+function conjugateImperfectII(c) {
+  const p = c.preVowel, s = c.stem, m = c.marker;
+  const d = 'ოდ';
+  return {
+    '1sg': buildForm(p, s, m, 'ი', 'ვ', d),
+    '2sg': buildForm(p, s, m, 'ი', '', d),
+    '3sg': buildForm(p, s, m, 'ა', '', d),
+    '1pl': buildForm(p, s, m, 'ით', 'ვ', d),
+    '2pl': buildForm(p, s, m, 'ით', '', d),
+    '3pl': buildForm(p, s, m, 'ნენ', '', d)
+  };
+}
+
+function conjugateSubjunctiveII(c) {
+  const p = c.preVowel, s = c.stem, m = c.marker;
+  const d = 'ოდ';
+  return {
+    '1sg': buildForm(p, s, m, 'ე', 'ვ', d),
+    '2sg': buildForm(p, s, m, 'ე', '', d),
+    '3sg': buildForm(p, s, m, 'ეს', '', d),
+    '1pl': buildForm(p, s, m, 'ეთ', 'ვ', d),
+    '2pl': buildForm(p, s, m, 'ეთ', '', d),
+    '3pl': buildForm(p, s, m, 'ნენ', '', d)
+  };
+}
+
+function conjugateFutureII(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, m = c.marker, pre = c.preverb;
+  return {
+    '1sg': buildFormFuture(pre, pv, s, m, 'ი', 'ვ', ''),
+    '2sg': buildFormFuture(pre, pv, s, m, 'ი', '', ''),
+    '3sg': buildFormFuture(pre, pv, s, m, 'ა', '', ''),
+    '1pl': buildFormFuture(pre, pv, s, m, 'ით', 'ვ', ''),
+    '2pl': buildFormFuture(pre, pv, s, m, 'ით', '', ''),
+    '3pl': buildFormFuture(pre, pv, s, m, 'იან', '', '')
+  };
+}
+
+function conjugateConditionalII(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, m = c.marker, pre = c.preverb;
+  const d = 'ოდ';
+  return {
+    '1sg': buildFormFuture(pre, pv, s, m, 'ი', 'ვ', d),
+    '2sg': buildFormFuture(pre, pv, s, m, 'ი', '', d),
+    '3sg': buildFormFuture(pre, pv, s, m, 'ა', '', d),
+    '1pl': buildFormFuture(pre, pv, s, m, 'ით', 'ვ', d),
+    '2pl': buildFormFuture(pre, pv, s, m, 'ით', '', d),
+    '3pl': buildFormFuture(pre, pv, s, m, 'ნენ', '', d)
+  };
+}
+
+function conjugateFutureSubjunctiveII(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, m = c.marker, pre = c.preverb;
+  const d = 'ოდ';
+  return {
+    '1sg': buildFormFuture(pre, pv, s, m, 'ე', 'ვ', d),
+    '2sg': buildFormFuture(pre, pv, s, m, 'ე', '', d),
+    '3sg': buildFormFuture(pre, pv, s, m, 'ეს', '', d),
+    '1pl': buildFormFuture(pre, pv, s, m, 'ეთ', 'ვ', d),
+    '2pl': buildFormFuture(pre, pv, s, m, 'ეთ', '', d),
+    '3pl': buildFormFuture(pre, pv, s, m, 'ნენ', '', d)
+  };
+}
+
 function conjugateFuture(c) {
   if (!c.preverb) return null;
   const pv = c.preVowel, s = c.stem, m = c.marker, pre = c.preverb, base = c.suffix;
@@ -364,9 +443,10 @@ function generate() {
     return;
   }
   highlightType(comp.suffix);
-  const pres = conjugatePresent(comp);
-  const impf = conjugateImperfect(comp);
-  const subj = conjugateSubjunctive(comp);
+  const type = document.getElementById('verbType').value;
+  const pres = type === 'II' ? conjugatePresentII(comp) : conjugatePresent(comp);
+  const impf = type === 'II' ? conjugateImperfectII(comp) : conjugateImperfect(comp);
+  const subj = type === 'II' ? conjugateSubjunctiveII(comp) : conjugateSubjunctive(comp);
   const pperf = conjugatePresentPerfect(comp);
   const iperf = conjugatePastPerfect(comp);
   const sperf = conjugatePerfectSubjunctive(comp);
@@ -376,9 +456,9 @@ function generate() {
   html += renderTable('接続法現在', subj, 'subj');
 
   if (comp.preverb) {
-    const fut = conjugateFuture(comp);
-    const cond = conjugateConditional(comp);
-    const fsub = conjugateFutureSubjunctive(comp);
+    const fut = type === 'II' ? conjugateFutureII(comp) : conjugateFuture(comp);
+    const cond = type === 'II' ? conjugateConditionalII(comp) : conjugateConditional(comp);
+    const fsub = type === 'II' ? conjugateFutureSubjunctiveII(comp) : conjugateFutureSubjunctive(comp);
     html += renderTable('未来', fut, 'future');
     html += renderTable('条件法', cond, 'conditional');
     html += renderTable('接続法未来', fsub, 'fsub');
