@@ -1,4 +1,3 @@
-+592-0
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -368,6 +367,18 @@ function conjugateFutureSubjunctive(c) {
   };
 }
 
+function conjugateFutureIII(c) {
+  return conjugateFuture(c);
+}
+
+function conjugateConditionalIII(c) {
+  return conjugateConditional(c);
+}
+
+function conjugateFutureSubjunctiveIII(c) {
+  return conjugateFutureSubjunctive(c);
+}
+
 function conjugateAorist(c) {
   if (!c.preverb) return null;
   const pv = c.preVowel, s = c.stem, pre = c.preverb;
@@ -550,9 +561,20 @@ function generate() {
   html += renderTable('接続法現在', subj, 'subj');
 
   if (comp.preverb) {
-    const fut = type === 'II' ? conjugateFutureII(comp) : conjugateFuture(comp);
-    const cond = type === 'II' ? conjugateConditionalII(comp) : conjugateConditional(comp);
-    const fsub = type === 'II' ? conjugateFutureSubjunctiveII(comp) : conjugateFutureSubjunctive(comp);
+    let fut, cond, fsub;
+    if (type === 'II') {
+      fut = conjugateFutureII(comp);
+      cond = conjugateConditionalII(comp);
+      fsub = conjugateFutureSubjunctiveII(comp);
+    } else if (type === 'III') {
+      fut = conjugateFutureIII(comp);
+      cond = conjugateConditionalIII(comp);
+      fsub = conjugateFutureSubjunctiveIII(comp);
+    } else {
+      fut = conjugateFuture(comp);
+      cond = conjugateConditional(comp);
+      fsub = conjugateFutureSubjunctive(comp);
+    }
     html += renderTable('未来', fut, 'future');
     html += renderTable('条件法', cond, 'conditional');
     html += renderTable('接続法未来', fsub, 'fsub');
