@@ -101,11 +101,47 @@ table[data-tam="perfsub"] { background:#f5f5e0; }
   </select>
 </div>
 <div id="output"></div>
+<div id="quiz" style="margin-top:1em">
+  <label><input type="radio" name="quizMode" value="descToWord" checked>活用→単語</label>
+  <label><input type="radio" name="quizMode" value="wordToDesc">単語→活用</label>
+  <button id="startQuiz">クイズ開始</button>
+  <div id="quizQuestion" style="margin-top:0.5em;font-weight:bold"></div>
+  <input id="quizAnswer" type="text" style="margin-top:0.5em">
+  <button id="checkAnswer">回答</button>
+  <div id="quizResult" style="margin-top:0.5em"></div>
+</div>
 <script>
 // 定義: 前母音・現在/未来マーカー・人称接尾辞
 const PRE_VOWELS = ['ა', 'ე', 'ი', 'უ'];
 const FUTURE_MARKERS = ['ამ', 'ავ', 'ებ', 'ობ', 'ოპ', 'ი', 'მ', 'ვ'];
 const PERSON_SUFFIXES = ['ს', 'ა'];
+
+let allForms = null;
+let quizItems = [];
+let currentQuiz = null;
+
+const TAM_LABELS = {
+  present: '現在',
+  imperfect: '未完了過去',
+  subj: '接続法現在',
+  future: '未来',
+  conditional: '条件法',
+  fsub: '接続法未来',
+  aorist: 'アオリスト',
+  optative: '希求法',
+  presperf: '現在完了',
+  pastperf: '過去完了',
+  perfsub: '接続法完了'
+};
+
+const PERSON_LABELS = {
+  '1sg': '一人称単数',
+  '2sg': '二人称単数',
+  '3sg': '三人称単数',
+  '1pl': '一人称複数',
+  '2pl': '二人称複数',
+  '3pl': '三人称複数'
+};
 
 function highlightType(suffix) {
   document.querySelectorAll('#verbType option').forEach(o => o.classList.remove('highlight'));
@@ -554,6 +590,61 @@ function formatForm(str) {
   return str;
 }
 
+function gatherQuizItems(forms) {
+  const items = [];
+  for (const [tamKey, obj] of Object.entries(forms)) {
+    if (!obj) continue;
+    for (const [pKey, word] of Object.entries(obj)) {
+      const desc = TAM_LABELS[tamKey] + '・' + PERSON_LABELS[pKey];
+      items.push({ desc, word });
+    }
+  }
+  return items;
+}
+
+function startQuiz() {
+  if (!allForms) {
+    document.getElementById('quizResult').textContent = 'まず活用を生成してください。';
+    return;
+  }
+  quizItems = gatherQuizItems(allForms);
+  if (quizItems.length === 0) {
+    document.getElementById('quizResult').textContent = 'クイズに使える形がありません。';
+    return;
+  }
+  const idx = Math.floor(Math.random() * quizItems.length);
+  currentQuiz = quizItems[idx];
+  const mode = document.querySelector('input[name="quizMode"]:checked').value;
+  currentQuiz.mode = mode;
+  const question = document.getElementById('quizQuestion');
+  const answer = document.getElementById('quizAnswer');
+  document.getElementById('quizResult').textContent = '';
+  answer.value = '';
+  if (mode === 'descToWord') {
+    question.textContent = currentQuiz.desc + ' の形は？';
+  } else {
+    question.textContent = '"' + formatForm(currentQuiz.word) + '" はどの活用？';
+  }
+}
+
+function checkAnswer() {
+  if (!currentQuiz) return;
+  const ans = document.getElementById('quizAnswer').value.trim();
+  let correctVal;
+  if (currentQuiz.mode === 'descToWord') {
+    correctVal = formatForm(currentQuiz.word);
+  } else {
+    correctVal = currentQuiz.desc;
+  }
+  const result = document.getElementById('quizResult');
+  if (ans === correctVal) {
+    result.textContent = '正解!';
+  } else {
+    result.textContent = '不正解。正しい答え: ' + correctVal;
+  }
+  currentQuiz = null;
+}
+
 function renderTable(title, forms, key) {
   const rows = [
     ['1sg', '1単', 'sg', '1'],
@@ -615,8 +706,8 @@ function generate() {
   html += renderTable('未完了過去', impf, 'imperfect');
   html += renderTable('接続法現在', subj, 'subj');
 
+  let fut = null, cond = null, fsub = null;
   if (comp.preverb) {
-    let fut, cond, fsub;
     if (type === 'II') {
       fut = conjugateFutureII(comp);
       cond = conjugateConditionalII(comp);
@@ -637,8 +728,8 @@ function generate() {
     html += '<p>この動詞は未来亜系統には活用できません</p>';
   }
 
+  let aor = null, opt = null;
   if (comp.preverb) {
-    let aor, opt;
     if (type === 'II') {
       aor = conjugateAoristII(comp);
       opt = conjugateOptativeII(comp);
@@ -658,6 +749,20 @@ function generate() {
   html += renderTable('現在完了', pperf, 'presperf');
   html += renderTable('過去完了', iperf, 'pastperf');
   html += renderTable('接続法完了', sperf, 'perfsub');
+
+  allForms = {
+    present: pres,
+    imperfect: impf,
+    subj,
+    future: fut,
+    conditional: cond,
+    fsub,
+    aorist: aor,
+    optative: opt,
+    presperf: pperf,
+    pastperf: iperf,
+    perfsub: sperf
+  };
   document.getElementById('output').innerHTML = html;
   applyFilter();
   document.querySelectorAll('#output td').forEach(td => {
@@ -675,6 +780,8 @@ document.getElementById('tamFilter').addEventListener('change', applyFilter);
 document.getElementById('personFilter').addEventListener('change', applyFilter);
 document.getElementById('numberFilter').addEventListener('change', applyFilter);
 document.getElementById('noHyphen').addEventListener('change', generate);
+document.getElementById('startQuiz').addEventListener('click', startQuiz);
+document.getElementById('checkAnswer').addEventListener('click', checkAnswer);
 </script>
 </body>
 </html>
