@@ -16,37 +16,59 @@
 <button id="convButton">活用する</button>
 <div id="output"></div>
 <script>
+// 定義: 前母音・現在/未来マーカー・人称接尾辞
+const PRE_VOWELS = ['ა', 'ე', 'ი', 'უ'];
+const FUTURE_MARKERS = ['ამ', 'ავ', 'ებ', 'ობ', 'ოპ', 'ი', 'მ', 'ვ'];
+const PERSON_SUFFIXES = ['ს', 'ა'];
+
 function parseDictionaryForm(str) {
-  let rest = str.trim();
-  const eqIdx = rest.indexOf('=');
+  const trimmed = str.trim();
+  let preverb = '';
+  let rest = trimmed;
+  const eqIdx = trimmed.indexOf('=');
   if (eqIdx !== -1) {
-    rest = rest.slice(eqIdx + 1);
+    preverb = trimmed.slice(0, eqIdx);
+    rest = trimmed.slice(eqIdx + 1);
   }
   const parts = rest.split('-').filter(p => p.length > 0);
 
   if (parts.length < 2) return null; // at least stem and suffix
 
   const suffix = parts.pop();
+  if (!PERSON_SUFFIXES.includes(suffix)) return null;
+
   let preVowel = '';
-  const vowels = ['ა', 'ე', 'ი', 'უ'];
-  if (parts.length && parts[0].length === 1 && vowels.includes(parts[0])) {
+  if (parts.length && parts[0].length === 1 && PRE_VOWELS.includes(parts[0])) {
     preVowel = parts.shift();
   }
 
   let stem = '', marker = '';
   if (parts.length === 2) {
     [stem, marker] = parts;
+    if (!FUTURE_MARKERS.includes(marker)) return null;
   } else if (parts.length === 1) {
     [stem] = parts; // markerless
   } else {
     return null;
   }
 
-  return { preVowel, stem, marker, suffix };
+  return { preverb, preVowel, stem, marker, suffix };
 }
 
 function buildForm(preVowel, stem, marker, suffix, infix, cond) {
   const tokens = [];
+  if (infix) tokens.push(infix);
+  if (preVowel) tokens.push(preVowel);
+  tokens.push(stem);
+  if (marker) tokens.push(marker);
+  if (cond) tokens.push(cond);
+  if (suffix) tokens.push(suffix);
+  return tokens.join('-');
+}
+
+function buildFormFuture(preverb, preVowel, stem, marker, suffix, infix, cond) {
+  const tokens = [];
+  if (preverb) tokens.push(preverb);
   if (infix) tokens.push(infix);
   if (preVowel) tokens.push(preVowel);
   tokens.push(stem);
@@ -94,6 +116,73 @@ function conjugateSubjunctive(c) {
   };
 }
 
+function conjugateFuture(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, m = c.marker, pre = c.preverb, base = c.suffix;
+  return {
+    '1sg': buildFormFuture(pre, pv, s, m, '', 'ვ', ''),
+    '2sg': buildFormFuture(pre, pv, s, m, '', '', ''),
+    '3sg': buildFormFuture(pre, pv, s, m, base, '', ''),
+    '1pl': buildFormFuture(pre, pv, s, m, 'თ', 'ვ', ''),
+    '2pl': buildFormFuture(pre, pv, s, m, 'თ', '', ''),
+    '3pl': buildFormFuture(pre, pv, s, m, 'ენ', '', '')
+  };
+}
+
+function conjugateConditional(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, m = c.marker, pre = c.preverb;
+  const d = 'დ';
+  return {
+    '1sg': buildFormFuture(pre, pv, s, m, 'ი', 'ვ', d),
+    '2sg': buildFormFuture(pre, pv, s, m, 'ი', '', d),
+    '3sg': buildFormFuture(pre, pv, s, m, 'ა', '', d),
+    '1pl': buildFormFuture(pre, pv, s, m, 'ით', 'ვ', d),
+    '2pl': buildFormFuture(pre, pv, s, m, 'ით', '', d),
+    '3pl': buildFormFuture(pre, pv, s, m, 'ნენ', '', d)
+  };
+}
+
+function conjugateFutureSubjunctive(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, m = c.marker, pre = c.preverb;
+  const d = 'დ';
+  return {
+    '1sg': buildFormFuture(pre, pv, s, m, 'ე', 'ვ', d),
+    '2sg': buildFormFuture(pre, pv, s, m, 'ე', '', d),
+    '3sg': buildFormFuture(pre, pv, s, m, 'ეს', '', d),
+    '1pl': buildFormFuture(pre, pv, s, m, 'ეთ', 'ვ', d),
+    '2pl': buildFormFuture(pre, pv, s, m, 'ეთ', '', d),
+    '3pl': buildFormFuture(pre, pv, s, m, 'ნენ', '', d)
+  };
+}
+
+function conjugateAorist(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, pre = c.preverb;
+  return {
+    '1sg': buildFormFuture(pre, pv, s, '', 'ე', 'ვ', ''),
+    '2sg': buildFormFuture(pre, pv, s, '', 'ე', '', ''),
+    '3sg': buildFormFuture(pre, pv, s, '', 'ა', '', ''),
+    '1pl': buildFormFuture(pre, pv, s, '', 'ეთ', 'ვ', ''),
+    '2pl': buildFormFuture(pre, pv, s, '', 'ეთ', '', ''),
+    '3pl': buildFormFuture(pre, pv, s, '', 'ეს', '', '')
+  };
+}
+
+function conjugateOptative(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, pre = c.preverb;
+  return {
+    '1sg': buildFormFuture(pre, pv, s, '', 'ო', 'ვ', ''),
+    '2sg': buildFormFuture(pre, pv, s, '', 'ო', '', ''),
+    '3sg': buildFormFuture(pre, pv, s, '', 'ოს', '', ''),
+    '1pl': buildFormFuture(pre, pv, s, '', 'ოთ', 'ვ', ''),
+    '2pl': buildFormFuture(pre, pv, s, '', 'ოთ', '', ''),
+    '3pl': buildFormFuture(pre, pv, s, '', 'ონ', '', '')
+  };
+}
+
 function renderTable(title, forms) {
   return '<h3>' + title + '</h3>' +
     '<table>' +
@@ -117,10 +206,26 @@ function generate() {
   const pres = conjugatePresent(comp);
   const impf = conjugateImperfect(comp);
   const subj = conjugateSubjunctive(comp);
-  document.getElementById('output').innerHTML =
-    renderTable('現在', pres) +
+  let html = renderTable('現在', pres) +
     renderTable('未完了過去', impf) +
     renderTable('接続法現在', subj);
+
+  if (comp.preverb) {
+    const fut = conjugateFuture(comp);
+    const cond = conjugateConditional(comp);
+    const fsub = conjugateFutureSubjunctive(comp);
+    const aor = conjugateAorist(comp);
+    const opt = conjugateOptative(comp);
+    html += renderTable('未来', fut) +
+      renderTable('条件法', cond) +
+      renderTable('接続法未来', fsub) +
+      renderTable('アオリスト', aor) +
+      renderTable('希求法', opt);
+  } else {
+    html += '<p>この動詞は未来亜系統には活用できません</p>';
+    html += '<p>この動詞はアオリスト亜系統には活用できません</p>';
+  }
+  document.getElementById('output').innerHTML = html;
 }
 
 document.getElementById('convButton').addEventListener('click', generate);
