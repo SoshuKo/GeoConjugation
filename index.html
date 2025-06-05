@@ -360,7 +360,33 @@ function conjugateAorist(c) {
   };
 }
 
+function conjugateAoristII(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, pre = c.preverb;
+  return {
+    '1sg': buildFormFuture(pre, pv, s, '', 'ე', 'ვ', ''),
+    '2sg': buildFormFuture(pre, pv, s, '', 'ე', '', ''),
+    '3sg': buildFormFuture(pre, pv, s, '', 'ა', '', ''),
+    '1pl': buildFormFuture(pre, pv, s, '', 'ეთ', 'ვ', ''),
+    '2pl': buildFormFuture(pre, pv, s, '', 'ეთ', '', ''),
+    '3pl': buildFormFuture(pre, pv, s, '', 'ნენ', '', '')
+  };
+}
+
 function conjugateOptative(c) {
+  if (!c.preverb) return null;
+  const pv = c.preVowel, s = c.stem, pre = c.preverb;
+  return {
+    '1sg': buildFormFuture(pre, pv, s, '', 'ო', 'ვ', ''),
+    '2sg': buildFormFuture(pre, pv, s, '', 'ო', '', ''),
+    '3sg': buildFormFuture(pre, pv, s, '', 'ოს', '', ''),
+    '1pl': buildFormFuture(pre, pv, s, '', 'ოთ', 'ვ', ''),
+    '2pl': buildFormFuture(pre, pv, s, '', 'ოთ', '', ''),
+    '3pl': buildFormFuture(pre, pv, s, '', 'ონ', '', '')
+  };
+}
+
+function conjugateOptativeII(c) {
   if (!c.preverb) return null;
   const pv = c.preVowel, s = c.stem, pre = c.preverb;
   return {
@@ -467,8 +493,8 @@ function generate() {
   }
 
   if (comp.preverb) {
-    const aor = conjugateAorist(comp);
-    const opt = conjugateOptative(comp);
+    const aor = type === 'II' ? conjugateAoristII(comp) : conjugateAorist(comp);
+    const opt = type === 'II' ? conjugateOptativeII(comp) : conjugateOptative(comp);
     html += renderTable('アオリスト', aor, 'aorist');
     html += renderTable('希求法', opt, 'optative');
   } else {
