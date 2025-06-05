@@ -1,1 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ジョージア語動詞活用ジェネレーター</title>
+<style>
+ body { font-family: sans-serif; }
+ table { border-collapse: collapse; margin-bottom: 1em; }
+ th, td { border: 1px solid #000; padding: 4px 8px; }
+</style>
+</head>
+<body>
+<h1>ジョージア語動詞活用ジェネレーター</h1>
+<label for="dictForm">辞書形: </label>
+<input id="dictForm" type="text">
+<button id="convButton">活用する</button>
+<div id="output"></div>
+<script>
+function parseDictionaryForm(str) {
+  let rest = str.trim();
+  const eqIdx = rest.indexOf('=');
+  if (eqIdx !== -1) {
+    rest = rest.slice(eqIdx + 1);
+  }
+  const parts = rest.split('-').filter(p => p.length > 0);
 
+  if (parts.length < 2) return null; // at least stem and suffix
+
+  const suffix = parts.pop();
+  let preVowel = '';
+  const vowels = ['ა', 'ე', 'ი', 'უ'];
+  if (parts.length && parts[0].length === 1 && vowels.includes(parts[0])) {
+    preVowel = parts.shift();
+  }
+
+  let stem = '', marker = '';
+  if (parts.length === 2) {
+    [stem, marker] = parts;
+  } else if (parts.length === 1) {
+    [stem] = parts; // markerless
+  } else {
+    return null;
+  }
+
+  return { preVowel, stem, marker, suffix };
+}
+
+function buildForm(preVowel, stem, marker, suffix, infix, cond) {
+  const tokens = [];
+  if (infix) tokens.push(infix);
+  if (preVowel) tokens.push(preVowel);
+  tokens.push(stem);
+  if (marker) tokens.push(marker);
+  if (cond) tokens.push(cond);
+  if (suffix) tokens.push(suffix);
+  return tokens.join('-');
+}
+
+function conjugatePresent(c) {
+  const p = c.preVowel, s = c.stem, m = c.marker, base = c.suffix;
+  return {
+    '1sg': buildForm(p, s, m, '', 'ვ', ''),
+    '2sg': buildForm(p, s, m, '', '', ''),
+    '3sg': buildForm(p, s, m, base, '', ''),
+    '1pl': buildForm(p, s, m, 'თ', 'ვ', ''),
+    '2pl': buildForm(p, s, m, 'თ', '', ''),
+    '3pl': buildForm(p, s, m, 'ენ', '', '')
+  };
+}
+
+function conjugateImperfect(c) {
+  const p = c.preVowel, s = c.stem, m = c.marker;
+  const d = 'დ';
+  return {
+    '1sg': buildForm(p, s, m, 'ი', 'ვ', d),
+    '2sg': buildForm(p, s, m, 'ი', '', d),
+    '3sg': buildForm(p, s, m, 'ა', '', d),
+    '1pl': buildForm(p, s, m, 'ით', 'ვ', d),
+    '2pl': buildForm(p, s, m, 'ით', '', d),
+    '3pl': buildForm(p, s, m, 'ნენ', '', d)
+  };
+}
+
+function conjugateSubjunctive(c) {
+  const p = c.preVowel, s = c.stem, m = c.marker;
+  const d = 'დ';
+  return {
+    '1sg': buildForm(p, s, m, 'ე', 'ვ', d),
+    '2sg': buildForm(p, s, m, 'ე', '', d),
+    '3sg': buildForm(p, s, m, 'ეს', '', d),
+    '1pl': buildForm(p, s, m, 'ეთ', 'ვ', d),
+    '2pl': buildForm(p, s, m, 'ეთ', '', d),
+    '3pl': buildForm(p, s, m, 'ნენ', '', d)
+  };
+}
+
+function renderTable(title, forms) {
+  return '<h3>' + title + '</h3>' +
+    '<table>' +
+    '<tr><th>人称</th><th>活用形</th></tr>' +
+    '<tr><th>1単</th><td>' + forms['1sg'] + '</td></tr>' +
+    '<tr><th>2単</th><td>' + forms['2sg'] + '</td></tr>' +
+    '<tr><th>3単</th><td>' + forms['3sg'] + '</td></tr>' +
+    '<tr><th>1複</th><td>' + forms['1pl'] + '</td></tr>' +
+    '<tr><th>2複</th><td>' + forms['2pl'] + '</td></tr>' +
+    '<tr><th>3複</th><td>' + forms['3pl'] + '</td></tr>' +
+    '</table>';
+}
+
+function generate() {
+  const input = document.getElementById('dictForm').value;
+  const comp = parseDictionaryForm(input);
+  if (!comp) {
+    document.getElementById('output').textContent = '解析できませんでした。';
+    return;
+  }
+  const pres = conjugatePresent(comp);
+  const impf = conjugateImperfect(comp);
+  const subj = conjugateSubjunctive(comp);
+  document.getElementById('output').innerHTML =
+    renderTable('現在', pres) +
+    renderTable('未完了過去', impf) +
+    renderTable('接続法現在', subj);
+}
+
+document.getElementById('convButton').addEventListener('click', generate);
+</script>
+</body>
+</html>
