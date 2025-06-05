@@ -16,33 +16,43 @@
 <button id="convButton">活用する</button>
 <div id="output"></div>
 <script>
+// 定義: 前母音・現在/未来マーカー・人称接尾辞
+const PRE_VOWELS = ['ა', 'ე', 'ი', 'უ'];
+const FUTURE_MARKERS = ['ამ', 'ავ', 'ებ', 'ობ', 'ოპ', 'ი', 'მ', 'ვ'];
+const PERSON_SUFFIXES = ['ს', 'ა'];
+
 function parseDictionaryForm(str) {
-  let rest = str.trim();
-  const eqIdx = rest.indexOf('=');
+  const trimmed = str.trim();
+  let preverb = '';
+  let rest = trimmed;
+  const eqIdx = trimmed.indexOf('=');
   if (eqIdx !== -1) {
-    rest = rest.slice(eqIdx + 1);
+    preverb = trimmed.slice(0, eqIdx);
+    rest = trimmed.slice(eqIdx + 1);
   }
   const parts = rest.split('-').filter(p => p.length > 0);
 
   if (parts.length < 2) return null; // at least stem and suffix
 
   const suffix = parts.pop();
+  if (!PERSON_SUFFIXES.includes(suffix)) return null;
+
   let preVowel = '';
-  const vowels = ['ა', 'ე', 'ი', 'უ'];
-  if (parts.length && parts[0].length === 1 && vowels.includes(parts[0])) {
+  if (parts.length && parts[0].length === 1 && PRE_VOWELS.includes(parts[0])) {
     preVowel = parts.shift();
   }
 
   let stem = '', marker = '';
   if (parts.length === 2) {
     [stem, marker] = parts;
+    if (!FUTURE_MARKERS.includes(marker)) return null;
   } else if (parts.length === 1) {
     [stem] = parts; // markerless
   } else {
     return null;
   }
 
-  return { preVowel, stem, marker, suffix };
+  return { preverb, preVowel, stem, marker, suffix };
 }
 
 function buildForm(preVowel, stem, marker, suffix, infix, cond) {
