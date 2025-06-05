@@ -1,3 +1,4 @@
++592-0
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -265,6 +266,26 @@ function conjugateSubjunctiveII(c) {
   };
 }
 
+function transformIII(base) {
+  const obj = { ...base };
+  obj.preverb = '';
+  obj.preVowel = '';
+  if (obj.marker === 'ებ') obj.marker = 'ობ';
+  return obj;
+}
+
+function conjugatePresentIII(c) {
+  return conjugatePresent(transformIII(c));
+}
+
+function conjugateImperfectIII(c) {
+  return conjugateImperfect(transformIII(c));
+}
+
+function conjugateSubjunctiveIII(c) {
+  return conjugateSubjunctive(transformIII(c));
+}
+
 function conjugateFutureII(c) {
   if (!c.preverb) return null;
   const pv = c.preVowel, s = c.stem, m = c.marker, pre = c.preverb;
@@ -506,9 +527,20 @@ function generate() {
   }
   highlightType(comp.suffix);
   const type = document.getElementById('verbType').value;
-  const pres = type === 'II' ? conjugatePresentII(comp) : conjugatePresent(comp);
-  const impf = type === 'II' ? conjugateImperfectII(comp) : conjugateImperfect(comp);
-  const subj = type === 'II' ? conjugateSubjunctiveII(comp) : conjugateSubjunctive(comp);
+  let pres, impf, subj;
+  if (type === 'II') {
+    pres = conjugatePresentII(comp);
+    impf = conjugateImperfectII(comp);
+    subj = conjugateSubjunctiveII(comp);
+  } else if (type === 'III') {
+    pres = conjugatePresentIII(comp);
+    impf = conjugateImperfectIII(comp);
+    subj = conjugateSubjunctiveIII(comp);
+  } else {
+    pres = conjugatePresent(comp);
+    impf = conjugateImperfect(comp);
+    subj = conjugateSubjunctive(comp);
+  }
   const pperf = type === 'II' ? conjugatePresentPerfectII(comp) : conjugatePresentPerfect(comp);
   const iperf = type === 'II' ? conjugatePastPerfectII(comp) : conjugatePastPerfect(comp);
   const sperf = type === 'II' ? conjugatePerfectSubjunctiveII(comp) : conjugatePerfectSubjunctive(comp);
