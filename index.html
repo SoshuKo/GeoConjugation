@@ -183,6 +183,42 @@ function conjugateOptative(c) {
   };
 }
 
+function conjugatePresentPerfect(c) {
+  const pre = c.preverb, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildFormFuture(pre, 'ი', s, m, 'ია', 'მ', ''),
+    '2sg': buildFormFuture(pre, 'ი', s, m, 'ია', 'გ', ''),
+    '3sg': buildFormFuture(pre, 'უ', s, m, 'ია', '', ''),
+    '1pl': buildFormFuture(pre, 'ი', s, m, 'ია', 'გვ', ''),
+    '2pl': buildFormFuture(pre, 'ი', s, m, 'იათ', 'გ', ''),
+    '3pl': buildFormFuture(pre, 'უ', s, m, 'იათ', '', '')
+  };
+}
+
+function conjugatePastPerfect(c) {
+  const pre = c.preverb, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildFormFuture(pre, 'ე', s, m, 'ინა', 'მ', ''),
+    '2sg': buildFormFuture(pre, 'ე', s, m, 'ინა', 'გ', ''),
+    '3sg': buildFormFuture(pre, 'ე', s, m, 'ინა', '', ''),
+    '1pl': buildFormFuture(pre, 'ე', s, m, 'ინა', 'გვ', ''),
+    '2pl': buildFormFuture(pre, 'ე', s, m, 'ინათ', 'გ', ''),
+    '3pl': buildFormFuture(pre, 'ე', s, m, 'ინათ', '', '')
+  };
+}
+
+function conjugatePerfectSubjunctive(c) {
+  const pre = c.preverb, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildFormFuture(pre, 'ე', s, m, 'ინოს', 'მ', ''),
+    '2sg': buildFormFuture(pre, 'ე', s, m, 'ინოს', 'გ', ''),
+    '3sg': buildFormFuture(pre, 'ე', s, m, 'ინოს', '', ''),
+    '1pl': buildFormFuture(pre, 'ე', s, m, 'ინოს', 'გვ', ''),
+    '2pl': buildFormFuture(pre, 'ე', s, m, 'ინოთ', 'გ', ''),
+    '3pl': buildFormFuture(pre, 'ე', s, m, 'ინოთ', '', '')
+  };
+}
+
 function renderTable(title, forms) {
   return '<h3>' + title + '</h3>' +
     '<table>' +
@@ -206,9 +242,15 @@ function generate() {
   const pres = conjugatePresent(comp);
   const impf = conjugateImperfect(comp);
   const subj = conjugateSubjunctive(comp);
+  const pperf = conjugatePresentPerfect(comp);
+  const iperf = conjugatePastPerfect(comp);
+  const sperf = conjugatePerfectSubjunctive(comp);
   let html = renderTable('現在', pres) +
     renderTable('未完了過去', impf) +
-    renderTable('接続法現在', subj);
+    renderTable('接続法現在', subj) +
+    renderTable('現在完了', pperf) +
+    renderTable('過去完了', iperf) +
+    renderTable('接続法完了', sperf);
 
   if (comp.preverb) {
     const fut = conjugateFuture(comp);
