@@ -435,6 +435,42 @@ function conjugatePerfectSubjunctive(c) {
   };
 }
 
+function conjugatePresentPerfectII(c) {
+  const pre = c.preverb, p = c.preVowel, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildFormFuture(pre, p, s, m, 'ულ-ვარ', 'ვ', ''),
+    '2sg': buildFormFuture(pre, p, s, m, 'ულ-ხარ', '', ''),
+    '3sg': buildFormFuture(pre, p, s, m, 'ულ-ა', '', ''),
+    '1pl': buildFormFuture(pre, p, s, m, 'ულ-ვართ', 'ვ', ''),
+    '2pl': buildFormFuture(pre, p, s, m, 'ულ-ხართ', '', ''),
+    '3pl': buildFormFuture(pre, p, s, m, 'ულ-ან', '', '')
+  };
+}
+
+function conjugatePastPerfectII(c) {
+  const pre = c.preverb, p = c.preVowel, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildFormFuture(pre, p, s, m, 'ულ-იყავი', 'ვ', ''),
+    '2sg': buildFormFuture(pre, p, s, m, 'ულ-იყავი', '', ''),
+    '3sg': buildFormFuture(pre, p, s, m, 'ულ-იყო', '', ''),
+    '1pl': buildFormFuture(pre, p, s, m, 'ულ-იყავით', 'ვ', ''),
+    '2pl': buildFormFuture(pre, p, s, m, 'ულ-იყავით', '', ''),
+    '3pl': buildFormFuture(pre, p, s, m, 'ულ-იყვნენ', '', '')
+  };
+}
+
+function conjugatePerfectSubjunctiveII(c) {
+  const pre = c.preverb, p = c.preVowel, s = c.stem, m = c.marker;
+  return {
+    '1sg': buildFormFuture(pre, p, s, m, 'ულ-იყო', 'ვ', ''),
+    '2sg': buildFormFuture(pre, p, s, m, 'ულ-იყო', '', ''),
+    '3sg': buildFormFuture(pre, p, s, m, 'ულ-იყოს', '', ''),
+    '1pl': buildFormFuture(pre, p, s, m, 'ულ-იყოთ', 'ვ', ''),
+    '2pl': buildFormFuture(pre, p, s, m, 'ულ-იყოთ', '', ''),
+    '3pl': buildFormFuture(pre, p, s, m, 'ულ-იყონ', '', '')
+  };
+}
+
 function formatForm(str) {
   if (document.getElementById('noHyphen').checked) {
     return str.replace(/-/g, '');
@@ -473,9 +509,9 @@ function generate() {
   const pres = type === 'II' ? conjugatePresentII(comp) : conjugatePresent(comp);
   const impf = type === 'II' ? conjugateImperfectII(comp) : conjugateImperfect(comp);
   const subj = type === 'II' ? conjugateSubjunctiveII(comp) : conjugateSubjunctive(comp);
-  const pperf = conjugatePresentPerfect(comp);
-  const iperf = conjugatePastPerfect(comp);
-  const sperf = conjugatePerfectSubjunctive(comp);
+  const pperf = type === 'II' ? conjugatePresentPerfectII(comp) : conjugatePresentPerfect(comp);
+  const iperf = type === 'II' ? conjugatePastPerfectII(comp) : conjugatePastPerfect(comp);
+  const sperf = type === 'II' ? conjugatePerfectSubjunctiveII(comp) : conjugatePerfectSubjunctive(comp);
   let html = '';
   html += renderTable('現在', pres, 'present');
   html += renderTable('未完了過去', impf, 'imperfect');
