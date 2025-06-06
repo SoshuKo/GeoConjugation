@@ -6,17 +6,22 @@
 <style>
  body {
    font-family: "Segoe UI", "Hiragino Kaku Gothic Pro", sans-serif;
-   background: #f5f5f5;
+   background: linear-gradient(#fafafa, #e0e0ff);
    padding: 1em;
  }
  table {
    border-collapse: collapse;
    margin-bottom: 1em;
    width: 100%;
+   background: #fff;
+   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+   border-radius: 4px;
+   overflow: hidden;
  }
  th, td {
    border: 1px solid #444;
    padding: 6px 8px;
+   transition: background 0.3s, transform 0.3s;
  }
  th {
    background: #ddd;
@@ -26,14 +31,17 @@
    cursor: pointer;
  }
  td.copied {
-   animation: flash 0.6s;
+   animation: flash 0.6s, bounce 0.6s;
  }
 @keyframes flash {
   from { background: #ffffcc; }
   to { background: #fff; }
 }
+@keyframes bounce {
+  50% { transform: scale(1.15); }
+  to { transform: scale(1); }
+}
 option.highlight { background: #ff0; }
-.hidden { display: none; }
 details {
   margin-bottom: 0.5em;
 }
@@ -55,6 +63,27 @@ table[data-tam="optative"] { background:#f0fff5; }
 table[data-tam="presperf"] { background:#fff0f5; }
 table[data-tam="pastperf"] { background:#f5f0ff; }
 table[data-tam="perfsub"] { background:#f5f5e0; }
+#filterResults {
+  margin-top: 1em;
+  padding: 0.5em;
+  border: 2px dashed #448;
+  background: #fff;
+  border-radius: 4px;
+}
+.resultRow {
+  padding: 2px 0;
+}
+.resultRow .desc {
+  font-weight: bold;
+  margin-right: 0.5em;
+}
+.resultRow .word {
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.resultRow .word:hover {
+  background: #ffffcc;
+}
 </style>
 </head>
 <body>
@@ -99,7 +128,21 @@ table[data-tam="perfsub"] { background:#f5f5e0; }
     <option value="sg">単</option>
     <option value="pl">複</option>
   </select>
+  <label for="objPersonFilter">目的語人称:</label>
+  <select id="objPersonFilter">
+    <option value="">--</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+  </select>
+  <label for="objNumberFilter">目的語数:</label>
+  <select id="objNumberFilter">
+    <option value="">--</option>
+    <option value="sg">単</option>
+    <option value="pl">複</option>
+  </select>
 </div>
+<div id="filterResults"></div>
 <div id="output"></div>
 <div id="quiz" style="margin-top:1em">
   <label><input type="radio" name="quizMode" value="descToWord" checked>活用→単語</label>
@@ -143,6 +186,24 @@ const PERSON_LABELS = {
   '3pl': '三人称複数'
 };
 
+const OBJ_LABELS = {
+  '1sg': '一人称単数',
+  '1pl': '一人称複数',
+  '2sg': '二人称単数',
+  '2pl': '二人称複数',
+  '3sg': '三人称単数',
+  '3pl': '三人称複数'
+};
+
+const OBJ_COMBOS = [
+  {person:'1', number:'sg', label:'目的語一人称単数'},
+  {person:'1', number:'pl', label:'目的語一人称複数'},
+  {person:'2', number:'sg', label:'目的語二人称単数'},
+  {person:'2', number:'pl', label:'目的語二人称複数'},
+  {person:'3', number:'sg', label:'目的語三人称単数'},
+  {person:'3', number:'pl', label:'目的語三人称複数'}
+];
+
 function highlightType(suffix) {
   document.querySelectorAll('#verbType option').forEach(o => o.classList.remove('highlight'));
   if (suffix === 'ს') {
@@ -158,13 +219,35 @@ function applyFilter() {
   const t = document.getElementById('tamFilter').value;
   const p = document.getElementById('personFilter').value;
   const n = document.getElementById('numberFilter').value;
+  const op = document.getElementById('objPersonFilter').value;
+  const on = document.getElementById('objNumberFilter').value;
+  let html = '';
   document.querySelectorAll('#output table.tam').forEach(tab => {
-    tab.style.display = !t || tab.dataset.tam === t ? '' : 'none';
+    const tamKey = tab.dataset.tam;
+    if (t && tamKey !== t) return;
+    tab.querySelectorAll('tr.person-row').forEach(row => {
+      const okP = !p || row.dataset.person === p;
+      const okN = !n || row.dataset.number === n;
+      const okOP = !op || row.dataset.objPerson === op;
+      const okON = !on || row.dataset.objNumber === on;
+      if (okP && okN && okOP && okON) {
+        const key = row.dataset.person + row.dataset.number;
+        const objKey = row.dataset.objPerson + row.dataset.objNumber;
+        const desc = TAM_LABELS[tamKey] + '・(主)' + PERSON_LABELS[key] + '(目)' + OBJ_LABELS[objKey];
+        const word = row.querySelector('td').textContent;
+        html += '<div class="resultRow"><span class="desc">' + desc + '</span><span class="word">' + word + '</span></div>';
+      }
+    });
   });
-  document.querySelectorAll('#output tr.person-row').forEach(row => {
-    const okP = !p || row.dataset.person === p;
-    const okN = !n || row.dataset.number === n;
-    row.style.display = okP && okN ? '' : 'none';
+  const box = document.getElementById('filterResults');
+  box.innerHTML = html || '<p>該当なし</p>';
+  box.querySelectorAll('.word').forEach(span => {
+    span.addEventListener('click', () => {
+      navigator.clipboard.writeText(span.textContent).then(() => {
+        span.classList.add('copied');
+        setTimeout(() => span.classList.remove('copied'), 600);
+      });
+    });
   });
 }
 
@@ -583,6 +666,262 @@ function conjugatePerfectSubjunctiveIII(c) {
   };
 }
 
+// --- IV 型動詞 ---
+function ivPreVowel(person) {
+  return person.startsWith('3') ? 'უ' : 'ი';
+}
+
+function ivInfix(person) {
+  if (person === '1sg') return 'მ';
+  if (person === '1pl') return 'გვ';
+  if (person.startsWith('2')) return 'გ';
+  return '';
+}
+
+function ivSuffixPresent(person) {
+  let suf = 'ს';
+  if (person === '2pl' || person === '3pl') suf = 'თ';
+  return suf;
+}
+
+function ivSuffixImperfect(person) {
+  let suf = 'ა';
+  if (person === '2pl' || person === '3pl') suf = 'ათ';
+  return suf;
+}
+
+function ivSuffixSubj(person) {
+  let suf = 'ეს';
+  if (person === '2pl' || person === '3pl') suf = 'ეთ';
+  return suf;
+}
+
+function ivSuffixFuture(person) {
+  let suf = 'ა';
+  if (person === '2pl' || person === '3pl') suf = 'ათ';
+  return suf;
+}
+
+function ivSuffixConditional(person) {
+  let suf = 'ა';
+  if (person === '2pl' || person === '3pl') suf = 'ათ';
+  return suf;
+}
+
+function ivSuffixFSub(person) {
+  let suf = 'ეს';
+  if (person === '2pl' || person === '3pl') suf = 'ეთ';
+  return suf;
+}
+
+function ivSuffixPresPerf(person) {
+  let suf = 'ია';
+  if (person === '2pl' || person === '3pl') suf = 'იათ';
+  return suf;
+}
+
+function ivSuffixPastPerf(person) {
+  let suf = 'ა';
+  if (person === '2pl' || person === '3pl') suf = 'ათ';
+  return suf;
+}
+
+function ivSuffixPerfSub(person) {
+  let suf = 'ეს';
+  if (person === '2pl' || person === '3pl') suf = 'ეთ';
+  return suf;
+}
+
+function conjugatePresentIV(c, obj) {
+  const pre = c.preverb, s = c.stem;
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1') {
+      suf = (p === '2pl' || p === '3pl') ? 'ვართ' : 'ვარ';
+    } else if (obj.person === '2') {
+      suf = obj.number === 'pl' ? 'ხართ' : 'ხარ';
+      if (p === '2pl' || p === '3pl') suf = 'ხართ';
+    } else {
+      suf = (p === '2pl' || p === '3pl') ? 'თ' : 'ს';
+    }
+    forms[p] = buildFormFuture(pre, ivPreVowel(p), s, '', suf, ivInfix(p), '');
+  });
+  return forms;
+}
+
+function conjugateImperfectIV(c, obj) {
+  const pre = c.preverb, s = c.stem;
+  const cond = 'დ';
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1') {
+      suf = (p === '2pl' || p === '3pl') ? 'ით' : 'ი';
+    } else if (obj.person === '2') {
+      suf = obj.number === 'pl' ? 'ით' : 'ი';
+      if (p === '2pl' || p === '3pl') suf = 'ით';
+    } else {
+      suf = (p === '2pl' || p === '3pl') ? 'ათ' : 'ა';
+    }
+    forms[p] = buildFormFuture(pre, ivPreVowel(p), s, '', suf, ivInfix(p), cond);
+  });
+  return forms;
+}
+
+function conjugateSubjunctiveIV(c, obj) {
+  const pre = c.preverb, s = c.stem;
+  const cond = 'დ';
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1') {
+      suf = (p === '2pl' || p === '3pl') ? 'ეთ' : 'ე';
+    } else if (obj.person === '2') {
+      suf = obj.number === 'pl' ? 'ეთ' : 'ე';
+      if (p === '2pl' || p === '3pl') suf = 'ეთ';
+    } else {
+      suf = (p === '2pl' || p === '3pl') ? 'ეთ' : 'ეს';
+    }
+    forms[p] = buildFormFuture(pre, ivPreVowel(p), s, '', suf, ivInfix(p), cond);
+  });
+  return forms;
+}
+
+function conjugateFutureIV(c, obj) {
+  const pre = c.preverb, pv = 'ე', s = c.stem, m = c.marker;
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1') {
+      suf = 'ი';
+    } else if (obj.person === '2') {
+      suf = obj.number === 'pl' ? 'ით' : 'ი';
+    } else if (obj.person === '3' && obj.number === 'pl') {
+      suf = 'იან';
+    } else {
+      suf = 'ა';
+    }
+    if ((p === '2pl' || p === '3pl') && (suf === 'ი')) suf = 'ით';
+    if ((p === '2pl' || p === '3pl') && (suf === 'ა')) suf = 'ათ';
+    forms[p] = buildFormFuture(pre, pv, s, m, suf, ivInfix(p), '');
+  });
+  return forms;
+}
+
+function conjugateConditionalIV(c, obj) {
+  const pre = c.preverb, pv = 'ე', s = c.stem, m = c.marker, cond = 'ოდ';
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1') {
+      suf = 'ი';
+    } else if (obj.person === '2') {
+      suf = obj.number === 'pl' ? 'ით' : 'ი';
+    } else if (obj.person === '3' && obj.number === 'pl') {
+      suf = 'ნენ';
+    } else {
+      suf = 'ა';
+    }
+    if ((p === '2pl' || p === '3pl') && suf === 'ი') suf = 'ით';
+    if ((p === '2pl' || p === '3pl') && suf === 'ა') suf = 'ათ';
+    forms[p] = buildFormFuture(pre, pv, s, m, suf, ivInfix(p), cond);
+  });
+  return forms;
+}
+
+function conjugateFutureSubjunctiveIV(c, obj) {
+  const pre = c.preverb, pv = 'ე', s = c.stem, m = c.marker, cond = 'ოდ';
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1') {
+      suf = 'ე';
+    } else if (obj.person === '2') {
+      suf = obj.number === 'pl' ? 'ეთ' : 'ე';
+    } else if (obj.person === '3' && obj.number === 'pl') {
+      suf = 'ნენ';
+    } else {
+      suf = 'ეს';
+    }
+    if ((p === '2pl' || p === '3pl') && suf === 'ე') suf = 'ეთ';
+    if ((p === '2pl' || p === '3pl') && suf === 'ეს') suf = 'ეთ';
+    forms[p] = buildFormFuture(pre, pv, s, m, suf, ivInfix(p), cond);
+  });
+  return forms;
+}
+
+function conjugatePresentPerfectIV(c, obj) {
+  const pre = c.preverb, s = c.stem;
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1') {
+      suf = 'ია';
+    } else if (obj.person === '2') {
+      suf = obj.number === 'pl' ? 'ით' : 'ია';
+    } else if (obj.person === '3' && obj.number === 'pl') {
+      suf = 'იათ';
+    } else {
+      suf = 'ია';
+    }
+    if ((p === '2pl' || p === '3pl') && suf === 'ია') suf = 'იათ';
+    const inf = ivInfix(p) || (p.startsWith('3') ? 'ჰ' : '');
+    forms[p] = buildFormFuture(pre, '', s, '', suf, inf, '');
+  });
+  return forms;
+}
+
+function conjugatePastPerfectIV(c, obj) {
+  const pre = c.preverb, s = c.stem, m = c.marker, cond = 'ოდ';
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1' && obj.number === 'pl' && (p === '2pl' || p === '3pl')) {
+      suf = 'ა';
+    } else if (obj.person === '1' && obj.number === 'pl') {
+      suf = 'ნენ';
+    } else if (obj.person === '1') {
+      suf = 'ა';
+    } else if (obj.person === '2' && obj.number === 'pl' && p === '3pl') {
+      suf = 'ა';
+    } else if (obj.person === '2' && obj.number === 'pl') {
+      suf = 'ნენ';
+    } else if (obj.person === '2') {
+      suf = 'ა';
+    } else if (obj.person === '3' && obj.number === 'pl') {
+      suf = 'ნენ';
+    } else {
+      suf = 'ა';
+    }
+    if ((p === '2pl' || p === '3pl') && suf === 'ა') suf = 'ათ';
+    const inf = ivInfix(p) || (p.startsWith('3') ? 'ჰ' : '');
+    forms[p] = buildFormFuture(pre, '', s, m, suf, inf, cond);
+  });
+  return forms;
+}
+
+function conjugatePerfectSubjunctiveIV(c, obj) {
+  const pre = c.preverb, s = c.stem, m = c.marker, cond = 'ოდ';
+  const forms = {};
+  ['1sg','2sg','3sg','1pl','2pl','3pl'].forEach(p => {
+    let suf;
+    if (obj.person === '1') {
+      suf = obj.number === 'pl' ? 'ეთ' : 'ეს';
+    } else if (obj.person === '2') {
+      suf = obj.number === 'pl' ? 'ეთ' : 'ეს';
+    } else if (obj.person === '3' && obj.number === 'pl') {
+      suf = 'ნენ';
+    } else {
+      suf = 'ეს';
+    }
+    if ((p === '2pl' || p === '3pl') && suf === 'ეს') suf = 'ეთ';
+    const inf = ivInfix(p) || (p.startsWith('3') ? 'ჰ' : '');
+    forms[p] = buildFormFuture(pre, '', s, m, suf, inf, cond);
+  });
+  return forms;
+}
+
 function formatForm(str) {
   if (document.getElementById('noHyphen').checked) {
     return str.replace(/-/g, '');
@@ -590,13 +929,22 @@ function formatForm(str) {
   return str;
 }
 
-function gatherQuizItems(forms) {
+function gatherQuizItems(forms, isIV) {
   const items = [];
-  for (const [tamKey, obj] of Object.entries(forms)) {
-    if (!obj) continue;
-    for (const [pKey, word] of Object.entries(obj)) {
-      const desc = TAM_LABELS[tamKey] + '・' + PERSON_LABELS[pKey];
-      items.push({ desc, word });
+  for (const [tamKey, data] of Object.entries(forms)) {
+    if (!data) continue;
+    if (isIV) {
+      for (const [objKey, objForms] of Object.entries(data)) {
+        for (const [pKey, word] of Object.entries(objForms)) {
+          const desc = TAM_LABELS[tamKey] + '・(主)' + PERSON_LABELS[pKey] + '(目)' + OBJ_LABELS[objKey];
+          items.push({ desc, word });
+        }
+      }
+    } else {
+      for (const [pKey, word] of Object.entries(data)) {
+        const desc = TAM_LABELS[tamKey] + '・(主)' + PERSON_LABELS[pKey] + '(目)三人称単数';
+        items.push({ desc, word });
+      }
     }
   }
   return items;
@@ -607,7 +955,8 @@ function startQuiz() {
     document.getElementById('quizResult').textContent = 'まず活用を生成してください。';
     return;
   }
-  quizItems = gatherQuizItems(allForms);
+  const isIV = document.getElementById('verbType').value === 'IV';
+  quizItems = gatherQuizItems(allForms, isIV);
   if (quizItems.length === 0) {
     document.getElementById('quizResult').textContent = 'クイズに使える形がありません。';
     return;
@@ -645,7 +994,7 @@ function checkAnswer() {
   currentQuiz = null;
 }
 
-function renderTable(title, forms, key) {
+function renderTable(forms, key, objP, objN, caption) {
   const rows = [
     ['1sg', '1単', 'sg', '1'],
     ['2sg', '2単', 'sg', '2'],
@@ -654,13 +1003,21 @@ function renderTable(title, forms, key) {
     ['2pl', '2複', 'pl', '2'],
     ['3pl', '3複', 'pl', '3']
   ];
-  let html = '<details open><summary>' + title + '</summary>' +
-    '<table class="tam" data-tam="' + key + '">' +
-    '<tr class="header"><th>人称</th><th>活用形</th></tr>';
+  if (!objP) { objP = '3'; objN = 'sg'; }
+  let html = '<table class="tam" data-tam="' + key + '" data-obj-person="' + objP + '" data-obj-number="' + objN + '">';
+  if (caption) html += '<caption>' + caption + '</caption>';
+  html += '<tr class="header"><th>人称</th><th>活用形</th></tr>';
   rows.forEach(r => {
-    html += '<tr class="person-row" data-number="' + r[2] + '" data-person="' + r[3] + '"><th>' + r[1] + '</th><td>' + formatForm(forms[r[0]]) + '</td></tr>';
+    html += '<tr class="person-row" data-number="' + r[2] + '" data-person="' + r[3] + '" data-obj-person="' + objP + '" data-obj-number="' + objN + '"><th>' + r[1] + '</th><td>' + formatForm(forms[r[0]]) + '</td></tr>';
   });
-  html += '</table></details>';
+  html += '</table>';
+  return html;
+}
+
+function renderTAMSection(title, key, tableHtmlArray) {
+  let html = '<details open><summary>' + title + '</summary>';
+  tableHtmlArray.forEach(t => { html += t; });
+  html += '</details>';
   return html;
 }
 
@@ -682,6 +1039,10 @@ function generate() {
     pres = conjugatePresentIII(comp);
     impf = conjugateImperfectIII(comp);
     subj = conjugateSubjunctiveIII(comp);
+  } else if (type === 'IV') {
+    pres = conjugatePresentIV(comp, {person:'3', number:'sg'});
+    impf = conjugateImperfectIV(comp, {person:'3', number:'sg'});
+    subj = conjugateSubjunctiveIV(comp, {person:'3', number:'sg'});
   } else {
     pres = conjugatePresent(comp);
     impf = conjugateImperfect(comp);
@@ -696,15 +1057,31 @@ function generate() {
     pperf = conjugatePresentPerfectIII(comp);
     iperf = conjugatePastPerfectIII(comp);
     sperf = conjugatePerfectSubjunctiveIII(comp);
+  } else if (type === 'IV') {
+    pperf = conjugatePresentPerfectIV(comp, {person:'3', number:'sg'});
+    iperf = conjugatePastPerfectIV(comp, {person:'3', number:'sg'});
+    sperf = conjugatePerfectSubjunctiveIV(comp, {person:'3', number:'sg'});
   } else {
     pperf = conjugatePresentPerfect(comp);
     iperf = conjugatePastPerfect(comp);
     sperf = conjugatePerfectSubjunctive(comp);
   }
   let html = '';
-  html += renderTable('現在', pres, 'present');
-  html += renderTable('未完了過去', impf, 'imperfect');
-  html += renderTable('接続法現在', subj, 'subj');
+
+
+  function buildSection(title, key, conjFn) {
+    const tables = [];
+    if (type === 'IV') {
+      OBJ_COMBOS.forEach(o => tables.push(renderTable(conjFn(o), key, o.person, o.number, o.label)));
+    } else {
+      tables.push(renderTable(conjFn(), key));
+    }
+    html += renderTAMSection(title, key, tables);
+  }
+
+  buildSection('現在', 'present', (o)=> type==='IV'?conjugatePresentIV(comp,o):pres);
+  buildSection('未完了過去', 'imperfect', (o)=> type==='IV'?conjugateImperfectIV(comp,o):impf);
+  buildSection('接続法現在', 'subj', (o)=> type==='IV'?conjugateSubjunctiveIV(comp,o):subj);
 
   let fut = null, cond = null, fsub = null;
   if (comp.preverb) {
@@ -716,53 +1093,91 @@ function generate() {
       fut = conjugateFutureIII(comp);
       cond = conjugateConditionalIII(comp);
       fsub = conjugateFutureSubjunctiveIII(comp);
+    } else if (type === 'IV') {
+      fut = conjugateFutureIV(comp, {person:'3', number:'sg'});
+      cond = conjugateConditionalIV(comp, {person:'3', number:'sg'});
+      fsub = conjugateFutureSubjunctiveIV(comp, {person:'3', number:'sg'});
     } else {
       fut = conjugateFuture(comp);
       cond = conjugateConditional(comp);
       fsub = conjugateFutureSubjunctive(comp);
     }
-    html += renderTable('未来', fut, 'future');
-    html += renderTable('条件法', cond, 'conditional');
-    html += renderTable('接続法未来', fsub, 'fsub');
+    buildSection('未来', 'future', (o)=> type==='IV'?conjugateFutureIV(comp,o):fut);
+    buildSection('条件法', 'conditional', (o)=> type==='IV'?conjugateConditionalIV(comp,o):cond);
+    buildSection('接続法未来', 'fsub', (o)=> type==='IV'?conjugateFutureSubjunctiveIV(comp,o):fsub);
   } else {
     html += '<p>この動詞は未来亜系統には活用できません</p>';
   }
 
   let aor = null, opt = null;
   if (comp.preverb) {
-    if (type === 'II') {
-      aor = conjugateAoristII(comp);
-      opt = conjugateOptativeII(comp);
-    } else if (type === 'III') {
-      aor = conjugateAoristIII(comp);
-      opt = conjugateOptativeIII(comp);
+    if (type === 'IV') {
+      html += '<p>アオリスト: 任意の前辞+未完了過去</p>';
+      html += '<p>希求法: 任意の前辞+接続法現在</p>';
     } else {
-      aor = conjugateAorist(comp);
-      opt = conjugateOptative(comp);
+      if (type === 'II') {
+        aor = conjugateAoristII(comp);
+        opt = conjugateOptativeII(comp);
+      } else if (type === 'III') {
+        aor = conjugateAoristIII(comp);
+        opt = conjugateOptativeIII(comp);
+      } else {
+        aor = conjugateAorist(comp);
+        opt = conjugateOptative(comp);
+      }
+      buildSection('アオリスト', 'aorist', ()=>aor);
+      buildSection('希求法', 'optative', ()=>opt);
     }
-    html += renderTable('アオリスト', aor, 'aorist');
-    html += renderTable('希求法', opt, 'optative');
   } else {
     html += '<p>この動詞はアオリスト亜系統には活用できません</p>';
   }
 
-  html += renderTable('現在完了', pperf, 'presperf');
-  html += renderTable('過去完了', iperf, 'pastperf');
-  html += renderTable('接続法完了', sperf, 'perfsub');
+  if (type === 'IV') {
+    buildSection('現在完了', 'presperf', (o)=>conjugatePresentPerfectIV(comp,o));
+    buildSection('過去完了', 'pastperf', (o)=>conjugatePastPerfectIV(comp,o));
+    buildSection('接続法完了', 'perfsub', (o)=>conjugatePerfectSubjunctiveIV(comp,o));
+  } else {
+    buildSection('現在完了', 'presperf', ()=>pperf);
+    buildSection('過去完了', 'pastperf', ()=>iperf);
+    buildSection('接続法完了', 'perfsub', ()=>sperf);
+  }
 
-  allForms = {
-    present: pres,
-    imperfect: impf,
-    subj,
-    future: fut,
-    conditional: cond,
-    fsub,
-    aorist: aor,
-    optative: opt,
-    presperf: pperf,
-    pastperf: iperf,
-    perfsub: sperf
-  };
+  if (type === 'IV') {
+    const collect = fn => {
+      const objMap = {};
+      OBJ_COMBOS.forEach(o => {
+        objMap[o.person + o.number] = fn(o);
+      });
+      return objMap;
+    };
+    allForms = {
+      present: collect(o => conjugatePresentIV(comp, o)),
+      imperfect: collect(o => conjugateImperfectIV(comp, o)),
+      subj: collect(o => conjugateSubjunctiveIV(comp, o)),
+      future: fut ? collect(o => conjugateFutureIV(comp, o)) : null,
+      conditional: cond ? collect(o => conjugateConditionalIV(comp, o)) : null,
+      fsub: fsub ? collect(o => conjugateFutureSubjunctiveIV(comp, o)) : null,
+      aorist: null,
+      optative: null,
+      presperf: collect(o => conjugatePresentPerfectIV(comp, o)),
+      pastperf: collect(o => conjugatePastPerfectIV(comp, o)),
+      perfsub: collect(o => conjugatePerfectSubjunctiveIV(comp, o))
+    };
+  } else {
+    allForms = {
+      present: pres,
+      imperfect: impf,
+      subj,
+      future: fut,
+      conditional: cond,
+      fsub,
+      aorist: aor,
+      optative: opt,
+      presperf: pperf,
+      pastperf: iperf,
+      perfsub: sperf
+    };
+  }
   document.getElementById('output').innerHTML = html;
   applyFilter();
   document.querySelectorAll('#output td').forEach(td => {
@@ -779,6 +1194,8 @@ document.getElementById('convButton').addEventListener('click', generate);
 document.getElementById('tamFilter').addEventListener('change', applyFilter);
 document.getElementById('personFilter').addEventListener('change', applyFilter);
 document.getElementById('numberFilter').addEventListener('change', applyFilter);
+document.getElementById('objPersonFilter').addEventListener('change', applyFilter);
+document.getElementById('objNumberFilter').addEventListener('change', applyFilter);
 document.getElementById('noHyphen').addEventListener('change', generate);
 document.getElementById('startQuiz').addEventListener('click', startQuiz);
 document.getElementById('checkAnswer').addEventListener('click', checkAnswer);
